@@ -178,10 +178,8 @@ def main():
         videos = list(iglob(os.path.join(folder,'*')))
         save_folder = os.path.join(BASEDIR_image, name)
         os.makedirs(save_folder, exist_ok=True)
-        for video in videos:
-            
-            data.user_image_profile(video, save_folder)
-    
+        for video in videos:      
+            data.user_image_profile(video, save_folder)    
     print('\033[92m[INFO] Data generated successfully... \033[0m')
     
     #creating a pickle file with name and features
