@@ -12,9 +12,7 @@ import math
 
 
 class Profile():
-    
-
-        
+            
     def user_video_profile(self,User, BASEDIR_video):
 
         #creating the directory
@@ -40,7 +38,6 @@ class Profile():
         cap.release()
         out.release()
         cv2.destroyAllWindows()
-
 
     def user_image_profile(self,video, image_path):
 
@@ -160,8 +157,8 @@ def main():
     model = VGGFace(model='resnet50', include_top=False, input_shape=(224, 224, 3), pooling='avg')  # pooling: None, avg or max
     
     #paths of base directories
-    BASEDIR_video = './data/user_videos'
-    BASEDIR_image = './data/user_images'
+    BASEDIR_video = './Data/user_videos'
+    BASEDIR_image = './Data/user_images'
     
     #class variables
     data = Profile()
