@@ -1,3 +1,25 @@
 # Custom-Face-Classification
 
-![Sample output](sample_classification.mp4)
+## Requirements
+* [Mediapipe 0.8.6](https://pypi.org/project/mediapipe/)
+* [Keras-vggface 0.6](https://pypi.org/project/keras-vggface/)
+* [OpenCV 4.5.3](https://pypi.org/project/opencv-python/)
+* [Tensorflow 2.5.0](https://pypi.org/project/tensorflow/)
+* [Keras 2.4.3](https://pypi.org/project/keras/)
+
+## Sample output
+https://user-images.githubusercontent.com/44506282/126061231-79e77c32-dac9-4f62-9990-9c1b0878bb9c.mp4
+
+## Order of execution 
+1. **Data_collecion.py** \
+Input- User_video \
+process - Video --> Image (specific folders) & feature generation \
+output - feature.pkl (facial features of each user) 
+
+2. **Recogniser.py** \
+Input - feature.pkl \
+Output - Real time face classification
+
+##### Tested on: Ubuntu 20.04 LTS & Visual Studio
+##### Project Status: Under development
+
