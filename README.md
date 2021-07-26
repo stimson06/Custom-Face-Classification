@@ -20,6 +20,16 @@ output - feature.pkl (facial features of each user)
 Input - feature.pkl \
 Output - Real time face classification
 
+## Execution Code
+Before execution of the code run Data_collection.py to generate the feature.pickle file
+```
+from Recogniser import FaceIdentify
+
+face = FaceIdentify(precompute_features_file="./features.pickle")
+detected_person = face.detect_face()
+print(detected_person)
+```
+
 ##### Tested on: Ubuntu 20.04 LTS & Visual Studio
 ##### Project Status: Under development
 
