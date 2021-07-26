@@ -12,11 +12,17 @@ import math
 
 
 class Profile():
+    '''The class helps in collecting and transforming the user data '''
             
     def user_video_profile(self,User, BASEDIR_video):
+        ''' This function helps capturing the video through webcam and 
+            save it as .avi the specified directory 
+        
+        Args:
+            User: The name of the user or person to captured in the video.
+            BASEDIR_video:  The path of the video to be saved.'''
 
-        #creating the directory
-        os.makedirs(os.path.join(BASEDIR_video,User),exist_ok=True)
+        os.makedirs(os.path.join(BASEDIR_video,User),exist_ok=True) #creating the directory
         cap = cv2.VideoCapture(0)
         fourcc = cv2.VideoWriter_fourcc(*'XVID') #VideoWriter object
         out = cv2.VideoWriter(os.path.join(BASEDIR_video,User,User+'.avi'), fourcc, 30.0, (640,  480))
@@ -40,6 +46,12 @@ class Profile():
         cv2.destroyAllWindows()
 
     def user_image_profile(self,video, image_path):
+        ''' This function helps in coverting the video files into saves 
+            series of images as .png (224 X 224) in the specified folder(creates or update on the existing)
+            
+        Args:
+            video: The path of the video file 
+            image path: The path of destination folder'''
 
         print('[INFO] Creating the images profile for {}' .format(os.path.basename(image_path)))
 
@@ -47,8 +59,8 @@ class Profile():
         mpFaceDetection = mp.solutions.face_detection
         face_detection = mpFaceDetection.FaceDetection(min_detection_confidence=0.55)
 
-        counter = 0        
-        margin = 70
+        counter = 0   # for naming the image file     
+        margin = 70   
         cap = cv2.VideoCapture(video)
 
         while cap.isOpened():
@@ -80,6 +92,8 @@ class Profile():
                     if y_b > img_h:
                         y_a = max(y_a - (y_b - img_h), 0)
                         y_b = img_h
+
+                    #Cropping and resizing
                     cropped = frame[y_a: y_b, x_a: x_b]
                     resized_img = cv2.resize(cropped, (224, 224), interpolation=cv2.INTER_AREA)
                     resized_img = np.array(resized_img)
@@ -97,15 +111,16 @@ class Profile():
             if cv2.waitKey(40) == ord('q'):
                 break
 
-             #Break when the video gets completed   
+            #Break when the video gets completed   
             if cap.get(cv2.CAP_PROP_POS_FRAMES) == cap.get(cv2.CAP_PROP_FRAME_COUNT):
-                    break
+                break
 
         print('[INFO] Compeleted ....')
         cap.release()
         cv2.destroyAllWindows()
 
 class Precompting():
+    '''This class predicts the 2048 face embeddings with the help of VGGFace and creates a pickle file (.pkl) '''
     
     def cal_mean_feature(self, image_folder, model):
         
@@ -115,15 +130,15 @@ class Precompting():
         
         
         def chunks(l, n):
-            
+            '''Helps in creating the batches of images for computing'''
             #creating list that contains the size of batch (i.e. 32)
             for i in range(0, len(l), n):
                 yield l[i:i + n]
 
         
-            #preprocessing of the images
+        
         def image2x(image_path):
-
+            '''Preprocessing the images'''
             img = image.load_img(image_path, target_size=(224, 224))
             x = image.img_to_array(img)
             x = np.expand_dims(x, axis=0)
@@ -146,8 +161,7 @@ class Precompting():
         return np.array(fvecs).sum(axis=0) / len(fvecs)
 
     def pickle_stuff(self, filename, stuff):
-        
-        #Dumping the name and features into a pickle file
+        '''Dumping the name and features into a pickle file'''
         save_stuff = open(filename, "wb")
         pickle.dump(stuff, save_stuff)
         save_stuff.close()
@@ -178,8 +192,10 @@ def main():
         videos = list(iglob(os.path.join(folder,'*')))
         save_folder = os.path.join(BASEDIR_image, name)
         os.makedirs(save_folder, exist_ok=True)
-        for video in videos:      
-            data.user_image_profile(video, save_folder)    
+        for video in videos:
+            
+            data.user_image_profile(video, save_folder)
+    
     print('\033[92m[INFO] Data generated successfully... \033[0m')
     
     #creating a pickle file with name and features

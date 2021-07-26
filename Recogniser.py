@@ -1,23 +1,27 @@
-from keras.models import Model
-from keras import models
-from keras import layers
-from keras.layers import Input
-from keras.preprocessing import image
 from keras_vggface.vggface import VGGFace
 import numpy as np
 import mediapipe as mp
-from keras_vggface import utils
 from scipy import spatial 
 import cv2
-import os
-import glob
 import pickle
 import time
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
 
 
 
 
+prog_start_time = time.time()
 def load_stuff(filename):
+    '''Loads the pickle file
+    
+    Args:
+        filename: path of the pickle file (feature.pickle)
+        
+    Return:
+        stuff: varible holding the loaded '''
+        
     saved_stuff = open(filename, "rb")
     stuff = pickle.load(saved_stuff)
     saved_stuff.close()
@@ -25,6 +29,10 @@ def load_stuff(filename):
 
 
 class FaceIdentify(object):
+    ''' This class collects the user data through the webcam(laptop) and resize it to 
+        224X224 and predictes the facial landmarks by VGGFace module and compares with 
+        features in the pickel file using euclidean distance method. The label of is 
+        accordance with the feature with min euclidean distance  '''
 
     
     def __new__(cls, precompute_features_file=None):
@@ -33,27 +41,25 @@ class FaceIdentify(object):
         return cls.instance
 
     def __init__(self, precompute_features_file=None):
+
         self.face_size = 224
         self.precompute_features_map = load_stuff(precompute_features_file)
         self.mpFaceDetection = mp.solutions.face_detection
-        self.mpDraw = mp.solutions.drawing_utils
         self.face_detection = self.mpFaceDetection.FaceDetection(0.50)
         print("[INFO] Loading the model")
-        self.model = VGGFace(model='resnet50',
-                             include_top=False,
-                             input_shape=(224, 224, 3),
-                             pooling='avg')  # pooling: None, avg or max
+        self.model = VGGFace(model='resnet50', include_top=False,
+                             input_shape=(224, 224, 3), pooling='avg')  # pooling: None, avg or max
         print("[INFO] Completed...")
 
     @classmethod
     def draw_label(cls, image, point, label, font=cv2.FONT_HERSHEY_SIMPLEX,
                    font_scale=1, t=2, l=20, color = (255, 255, 255)):
-        #size = cv2.getTextSize(label, font, font_scale, thickness)[0]
+                   
+        # Normalizing the size
         h,w,_= image.shape
         x, y, w, h = int((point.xmin * w )), int((point.ymin * h )), int((point.width * w )), int((point.height * h ))
         x1, y1 = x+w, y+h
 
-        #cv2.rectangle(image, bound_box, (255, 0, 0))
         #Top left
         cv2.line(image, (x, y), (x+l, y), color, t )
         cv2.line(image, (x, y), (x, y+l), color, t )
@@ -71,15 +77,16 @@ class FaceIdentify(object):
         cv2.line(image, (x1, y1), (x1, y1-l), color, t )
         
         cv2.putText(image, label, (x,y- 20 ), font, font_scale, color, t)
-        #cv2.putText(image, f' ({score*100})%', (x-15,y-20), font, font_scale, color, t)
         
     def crop_face(self, imgarray, bound_box_c, margin=20, size=224):
         """
-        :param imgarray: full image
-        :param section: face detected area (x, y, w, h)
-        :param margin: add some margin to the face detected area to include a full head
-        :param size: the result image resolution with be (size x size)
-        :return: resized image in numpy array with shape (size x size x 3)
+        Args:
+            imgarray: full image
+            bound_box_c: face detected area (xmin, ymin, widht, height)
+            margin: add some margin to the face detected area to include a full head
+            size: the result image resolution with be (size x size)
+        Return:
+         resized image in numpy array with shape (size x size x 3)
         """
         img_h, img_w, _ = imgarray.shape
         (x, y, w, h) = int(bound_box_c.xmin * img_w ), int(bound_box_c.ymin * img_h ), int(bound_box_c.width * img_w ), int(bound_box_c.height * img_h )
@@ -101,12 +108,18 @@ class FaceIdentify(object):
         if y_b > img_h:
             y_a = max(y_a - (y_b - img_h), 0)
             y_b = img_h
+
+        #Cropping, Resizing and converting to 1D array
         cropped = imgarray[y_a: y_b, x_a: x_b]
         resized_img = cv2.resize(cropped, (224, 224), interpolation=cv2.INTER_AREA)
         resized_img = np.array(resized_img)
+
         return resized_img, (x_a, y_a, x_b - x_a, y_b - y_a)
 
     def identify_face(self, features, threshold=100):
+        ''' Computes the eculidean distance between the predited and generated features(.pkl)
+            and'return the label having minimum euclidean distance '''
+        
         distances = []
         for person in self.precompute_features_map:
             person_features = person.get("features")
@@ -119,58 +132,69 @@ class FaceIdentify(object):
         else:
             return "Unkown"
 
-    def detect_face(self):
-        
+    def detect_face(self, Instances=5):
+        '''Detects 5(default) instance of the face and returns the most occured name'''
 
         # 0 means the default video capture device in OS
         video_capture = cv2.VideoCapture(0)
         ptime = 0
-        grab =0
+        person=[]
+
         # infinite loop, break by key ESC
         while True:
             if not video_capture.isOpened():
                 time.sleep(5)
+
             # Capture frame-by-frame
             ret, frame = video_capture.read()
             faces = self.face_detection.process(frame)
-            grab +=1
             ctime = time.time()
             fps = (1/(ctime - ptime))
             ptime = ctime 
+
             # placeholder for cropped 
             if faces.detections:
                 face_imgs = np.empty((len(faces.detections), self.face_size, self.face_size, 3))
                 for id, detection in enumerate(faces.detections):
                     face_img, cropped = self.crop_face(frame, detection.location_data.relative_bounding_box, margin=10, size=self.face_size)
                     (x, y, w, h) = cropped
-                    #cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 200, 0), 2)
                     face_imgs[id, :, :, :] = face_img
                 if len(face_imgs) > 0: 
                     # generate features for each face
                     features_faces = self.model.predict(face_imgs)
                     predicted_names = [self.identify_face(features_face) for features_face in features_faces]
-                    #print(predicted_names)
+                    
                 # draw results
                 for id, detection in enumerate(faces.detections):
                     label = "{}".format(predicted_names[id])
-                    #score= round(float(detection.score*100),2)
+                    person.append(label)
                     self.draw_label(frame, (detection.location_data.relative_bounding_box) , label)
                 
-
+            
             cv2.putText(frame , f'FPS : {int(fps)}', (10,50), cv2.FONT_HERSHEY_SIMPLEX,1, (255,255,255), 1)
             cv2.imshow('Detecting', frame)
-            if cv2.waitKey(20) == ord('q'):  # ESC key press
+
+            # Keyboard Interrupt ('q' to quit)
+            if cv2.waitKey(20) == ord('q') or len(person)>(Instances- 1):  
                 break
+        
         # When everything is done, release the capture
         video_capture.release()
         cv2.destroyAllWindows()
-
-        
+        return person
 
 
 def main():
+    '''Returns a list of face detected (length = 5[default] ) '''
+
     face = FaceIdentify(precompute_features_file="./features.pickle")
-    face.detect_face()
+    person = face.detect_face(Instances=5)
+    return person
 
 if __name__ == "__main__":
-    main()
+    
+    detected_person = main()
+    person = max(set(detected_person), key = detected_person.count)
+    prog_end_time = time.time()
+    print('Total_runtime : {:.2f} seconds'.format(prog_end_time - prog_start_time))
+    print(person)
