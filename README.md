@@ -26,7 +26,7 @@ Before execution of the code run Data_collection.py to generate the feature.pick
 from Recogniser import FaceIdentify
 
 face = FaceIdentify(precompute_features_file="./features.pickle")
-detected_person = face.detect_face()
+detected_person = face.detect_face(Instances = 5)
 print(detected_person)
 ```
 
