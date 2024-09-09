@@ -31,5 +31,4 @@ print(detected_person)
 ```
 
 ##### Tested on: Ubuntu 20.04 LTS & Visual Studio
-##### Project Status: Under development
 
